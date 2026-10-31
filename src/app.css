@@ -23,6 +23,16 @@ body {
 }
 /* iOS zooms inputs under 16px; keep them at 16px */
 input, select, textarea { font-size: 16px; }
+/* iOS date inputs have an intrinsic min-width and centred text that overflow their container */
+input[type='date'], input[type='datetime-local'] {
+	-webkit-appearance: none;
+	appearance: none;
+	min-width: 0;
+	min-height: 2.875rem;
+	display: block;
+	text-align: left;
+}
+input::-webkit-date-and-time-value { text-align: left; }
 
 .card { @apply rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/70 dark:border-stone-800; }
 .field { @apply w-full rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2.5; }

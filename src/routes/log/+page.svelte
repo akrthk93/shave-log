@@ -35,10 +35,15 @@
 	let postShaveFeel = $state(3);
 	let confidence = $state(3);
 	let notes = $state('');
+	let approx = $state(false);
+	let latestDate = $state<string | null>(null);
 	let saving = $state(false);
 	let error = $state('');
 
-	const daysGrowth = $derived(daysBetween(date, prevDate));
+	// An approximate date is stored as midday so it sorts sensibly within its day.
+	const effectiveDate = $derived(approx ? `${date.slice(0, 10)}T12:00` : date);
+	const daysGrowth = $derived(daysBetween(effectiveDate, prevDate));
+	const backdated = $derived(!!latestDate && effectiveDate < latestDate);
 
 	onMount(async () => {
 		blades = await getAllBlades();
@@ -50,11 +55,13 @@
 			bladeId = existing.blade_id;
 			({ plate, date, smoothness, closeness, efficiency, passes, tugging, nicks, irritation, notes, confidence } = existing);
 			postShaveFeel = existing.post_shave_feel;
+			approx = !!existing.approx_date;
 		} else {
 			// Default to the blade and passes from the latest shave.
 			const [setup, recent] = await Promise.all([getSetup(), getAllShaves()]);
 			plate = setup.default_plate;
 			const last = recent[0];
+			latestDate = last?.date ?? null;
 			bladeId = last?.blade_id ?? blades[0]?.id ?? NEW;
 			if (last?.passes) passes = last.passes;
 		}
@@ -63,7 +70,7 @@
 
 	// Recompute days of growth whenever the date changes.
 	$effect(() => {
-		const d = date;
+		const d = effectiveDate;
 		if (ready) getPreviousShaveDate(d, editId ?? undefined).then((p) => (prevDate = p));
 	});
 
@@ -78,7 +85,7 @@
 		try {
 			const blade_id = bladeId === NEW ? (await getOrCreateBlade(newBladeName)).id : bladeId;
 			const input = {
-				date, blade_id, plate, smoothness, closeness, efficiency, passes: passes.trim(), tugging,
+				date: effectiveDate, approx_date: approx, blade_id, plate, smoothness, closeness, efficiency, passes: passes.trim(), tugging,
 				nicks, irritation, post_shave_feel: postShaveFeel, confidence, notes: notes.trim()
 			};
 			if (editId) await updateShave(editId, input);
@@ -103,9 +110,26 @@
 	<form onsubmit={save} class="space-y-5">
 		<section class="card space-y-4 p-4">
 			<div>
-				<label for="date" class="label">Date & time</label>
-				<input type="datetime-local" id="date" bind:value={date} required class="field" />
-				<p class="mt-1 text-xs text-stone-500">{daysGrowth} day{daysGrowth === 1 ? '' : 's'} of growth since the previous shave</p>
+				<div class="mb-1.5 flex items-center justify-between">
+					<label for="date" class="text-sm font-medium text-stone-600 dark:text-stone-400">{approx ? 'Roughly when' : 'Date & time'}</label>
+					<label class="flex items-center gap-2 text-sm text-stone-600 dark:text-stone-400">
+						<input type="checkbox" bind:checked={approx} class="h-4 w-4 accent-accent" />
+						Not sure
+					</label>
+				</div>
+				{#if approx}
+					<input type="date" id="date" required class="field"
+						value={date.slice(0, 10)}
+						onchange={(e) => e.currentTarget.value && (date = e.currentTarget.value + date.slice(10))} />
+				{:else}
+					<input type="datetime-local" id="date" bind:value={date} required class="field" />
+				{/if}
+				<p class="mt-1 text-xs text-stone-500">
+					{approx ? '~' : ''}{daysGrowth} day{daysGrowth === 1 ? '' : 's'} of growth since the previous shave
+				</p>
+				{#if backdated}
+					<p class="mt-1 text-xs text-accent">Earlier than your latest shave — growth days and blade numbers will be re-counted.</p>
+				{/if}
 			</div>
 
 			<div>

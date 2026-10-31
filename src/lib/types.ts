@@ -26,6 +26,8 @@ export interface Shave {
 	post_shave_feel: number;
 	confidence: number;
 	notes: string;
+	/** True when the date is a best guess (shown as ~date). */
+	approx_date?: boolean;
 }
 
 export type ShaveInput = Omit<Shave, 'id' | 'shave_number' | 'days_growth'>;

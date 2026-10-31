@@ -108,11 +108,6 @@ export async function getShave(id: number): Promise<ShaveView | undefined> {
 	return { ...s, blade_name: blade?.name ?? '?' };
 }
 
-export async function getNextShaveNumber(bladeId: number, excludeId?: number): Promise<number> {
-	const shaves = await (await db()).getAllFromIndex('shaves', 'blade_id', bladeId);
-	return Math.max(0, ...shaves.filter((s) => s.id !== excludeId).map((s) => s.shave_number)) + 1;
-}
-
 /** Date of the most recent shave strictly before `date` (ignoring `excludeId`). */
 export async function getPreviousShaveDate(date: string, excludeId?: number): Promise<string | null> {
 	const shaves = await (await db()).getAll('shaves');
@@ -121,23 +116,44 @@ export async function getPreviousShaveDate(date: string, excludeId?: number): Pr
 }
 
 export async function insertShave(input: ShaveInput): Promise<number> {
-	const shave_number = await getNextShaveNumber(input.blade_id);
-	const days_growth = daysBetween(input.date, await getPreviousShaveDate(input.date));
-	return (await db()).add('shaves', { ...input, shave_number, days_growth } as Shave);
+	const id = await (await db()).add('shaves', { ...input, shave_number: 0, days_growth: 0 } as Shave);
+	await recompute();
+	return id;
 }
 
 export async function updateShave(id: number, input: ShaveInput) {
 	const d = await db();
 	const old = await d.get('shaves', id);
 	if (!old) throw new Error(`Shave ${id} not found`);
-	const shave_number =
-		old.blade_id === input.blade_id ? old.shave_number : await getNextShaveNumber(input.blade_id, id);
-	const days_growth = daysBetween(input.date, await getPreviousShaveDate(input.date, id));
-	await d.put('shaves', { ...input, id, shave_number, days_growth });
+	await d.put('shaves', { ...old, ...input, id });
+	await recompute();
 }
 
 export async function deleteShave(id: number) {
 	await (await db()).delete('shaves', id);
+	await recompute();
+}
+
+/**
+ * Derives shave_number (per blade, by date) and days_growth (since the previous shave)
+ * from dates, so backdated, edited or deleted shaves keep everything consistent.
+ * The earliest shave keeps its stored days_growth since there's nothing to measure from.
+ */
+async function recompute() {
+	const d = await db();
+	const tx = d.transaction('shaves', 'readwrite');
+	const all = (await tx.store.getAll()).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+	const counts = new Map<number, number>();
+	const writes: Promise<unknown>[] = [];
+	all.forEach((s, i) => {
+		const shave_number = (counts.get(s.blade_id) ?? 0) + 1;
+		counts.set(s.blade_id, shave_number);
+		const days_growth = i === 0 ? s.days_growth : daysBetween(s.date, all[i - 1].date);
+		if (s.shave_number !== shave_number || s.days_growth !== days_growth) {
+			writes.push(tx.store.put({ ...s, shave_number, days_growth }));
+		}
+	});
+	await Promise.all([...writes, tx.done]);
 }
 
 // --- Summaries ---
@@ -224,7 +240,8 @@ export async function importBackup(raw: unknown): Promise<{ blades: number; shav
 			irritation: Number(s.irritation) || 0,
 			post_shave_feel: Number(s.post_shave_feel),
 			confidence: Number(s.confidence),
-			notes: s.notes ?? ''
+			notes: s.notes ?? '',
+			approx_date: Boolean(s.approx_date)
 		});
 	}
 	await tx.objectStore('meta').put(setup, 'setup');

@@ -16,7 +16,7 @@
 	<div class="min-w-0 flex-1">
 		<div class="flex items-baseline justify-between gap-2">
 			<span class="truncate font-semibold">{shave.blade_name} <span class="font-normal text-stone-500">#{shave.shave_number}</span></span>
-			<span class="shrink-0 text-xs text-stone-500">{formatDate(shave.date)}</span>
+			<span class="shrink-0 text-xs text-stone-500">{shave.approx_date ? '~' : ''}{formatDate(shave.date)}</span>
 		</div>
 		<div class="mt-0.5 flex gap-3 text-xs text-stone-500 tabular-nums">
 			<span>Smooth {shave.smoothness}</span><span>Close {shave.closeness}</span><span>Irrit. {shave.irritation}</span>

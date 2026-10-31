@@ -36,6 +36,23 @@ describe('shaves', () => {
 		expect(s).toMatchObject({ blade_name: 'Feather', shave_number: 2, notes: 'moved', days_growth: 2 });
 	});
 
+	it('re-counts numbers and growth when a forgotten shave is backdated, edited or deleted', async () => {
+		const a = await db.getOrCreateBlade('Silver Blue');
+		const first = await db.insertShave({ ...base, date: '2026-08-10T18:00', blade_id: a.id });
+		const latest = await db.insertShave({ ...base, date: '2026-10-31T10:00', blade_id: a.id });
+		const forgotten = await db.insertShave({ ...base, date: '2026-09-20T12:00', approx_date: true, blade_id: a.id });
+		const get = async (id: number) => (await db.getShave(id))!;
+		expect(await get(forgotten)).toMatchObject({ shave_number: 2, days_growth: 41, approx_date: true });
+		expect(await get(latest)).toMatchObject({ shave_number: 3, days_growth: 41 });
+		expect((await get(first)).shave_number).toBe(1);
+
+		await db.updateShave(forgotten, { ...base, date: '2026-10-01T12:00', blade_id: a.id });
+		expect((await get(latest)).days_growth).toBe(30);
+
+		await db.deleteShave(forgotten);
+		expect(await get(latest)).toMatchObject({ shave_number: 2, days_growth: 82 });
+	});
+
 	it('summarises blades', async () => {
 		const a = await db.getOrCreateBlade('Astra SP');
 		await db.insertShave({ ...base, date: '2026-01-01T10:00', blade_id: a.id, smoothness: 3 });

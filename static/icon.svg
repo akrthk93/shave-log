@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#1c1917"/>
+  <!-- safety razor: head -->
+  <rect x="136" y="118" width="240" height="56" rx="20" fill="#f59e0b"/>
+  <rect x="120" y="136" width="272" height="20" rx="6" fill="#fde68a"/>
+  <!-- neck + handle -->
+  <rect x="236" y="174" width="40" height="34" rx="6" fill="#d6d3d1"/>
+  <rect x="226" y="206" width="60" height="210" rx="22" fill="#e7e5e4"/>
+  <g stroke="#a8a29e" stroke-width="6" stroke-linecap="round">
+    <line x1="238" y1="250" x2="274" y2="250"/><line x1="238" y1="272" x2="274" y2="272"/>
+    <line x1="238" y1="294" x2="274" y2="294"/><line x1="238" y1="316" x2="274" y2="316"/>
+    <line x1="238" y1="338" x2="274" y2="338"/><line x1="238" y1="360" x2="274" y2="360"/>
+  </g>
+</svg>

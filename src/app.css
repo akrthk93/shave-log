@@ -1,0 +1,32 @@
+@import 'tailwindcss';
+
+@theme {
+	--color-accent: #b45309;
+	--color-accent-soft: #fef3c7;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--color-accent: #f59e0b;
+		--color-accent-soft: #451a03;
+	}
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+	-webkit-tap-highlight-color: transparent;
+}
+body {
+	@apply bg-stone-100 text-stone-900 dark:bg-stone-950 dark:text-stone-100;
+	font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+	overscroll-behavior-y: none;
+}
+/* iOS zooms inputs under 16px; keep them at 16px */
+input, select, textarea { font-size: 16px; }
+
+.card { @apply rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/70 dark:border-stone-800; }
+.field { @apply w-full rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2.5; }
+.label { @apply block text-sm font-medium text-stone-600 dark:text-stone-400 mb-1.5; }
+.btn-primary { @apply w-full rounded-xl bg-accent text-white dark:text-stone-950 py-3.5 font-semibold active:opacity-80 disabled:opacity-50; }
+.btn-secondary { @apply rounded-xl bg-stone-200 dark:bg-stone-800 px-4 py-2.5 font-medium active:opacity-70; }
+.section-title { @apply text-xs font-semibold uppercase tracking-wider text-stone-500 mb-2 px-1; }
